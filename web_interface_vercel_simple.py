@@ -4,7 +4,7 @@ Interface Web ultra-simplifiée pour Vercel
 Version minimale sans templates ni fichiers statiques
 """
 
-from flask import Flask, jsonify
+from flask import Flask, jsonify, request
 import logging
 from datetime import datetime
 import os
@@ -35,6 +35,19 @@ system_state = {
     }
 }
 
+def add_log(message):
+    """Ajoute un log et le garde en mémoire"""
+    timestamp = datetime.now().strftime('%H:%M:%S')
+    log_entry = f"{timestamp} - INFO - {message}"
+    system_state['logs'].append(log_entry)
+    
+    # Garder seulement les 100 derniers logs
+    if len(system_state['logs']) > 100:
+        system_state['logs'] = system_state['logs'][-100:]
+    
+    logger.info(f"Log ajouté: {log_entry}")
+    return log_entry
+
 @app.route('/')
 def index():
     """Page d'accueil simple"""
@@ -52,8 +65,13 @@ def index():
             .status { background: #e8f5e8; padding: 15px; border-radius: 5px; margin: 20px 0; }
             .button { background: #3498db; color: white; padding: 10px 20px; border: none; border-radius: 5px; cursor: pointer; margin: 5px; }
             .button:hover { background: #2980b9; }
-            .logs { background: #f8f9fa; padding: 15px; border-radius: 5px; margin: 20px 0; max-height: 300px; overflow-y: auto; }
-            .log-entry { margin: 5px 0; font-family: monospace; }
+            .button:disabled { background: #bdc3c7; cursor: not-allowed; }
+            .logs { background: #f8f9fa; padding: 15px; border-radius: 5px; margin: 20px 0; max-height: 400px; overflow-y: auto; }
+            .log-entry { margin: 5px 0; font-family: monospace; padding: 5px; border-left: 3px solid #3498db; }
+            .success { color: #27ae60; }
+            .error { color: #e74c3c; }
+            .info { color: #3498db; }
+            .loading { opacity: 0.6; }
         </style>
     </head>
     <body>
@@ -69,11 +87,11 @@ def index():
             
             <div>
                 <h3>⚡ Actions Rapides</h3>
-                <button class="button" onclick="runScript('sync')">🔄 Synchronisation</button>
-                <button class="button" onclick="runScript('tasks')">📝 Créer Tâches</button>
-                <button class="button" onclick="runScript('assign')">👥 Assigner</button>
-                <button class="button" onclick="runScript('link')">🔗 Lier Contacts</button>
-                <button class="button" onclick="runScript('relations')">🔄 Relations</button>
+                <button class="button" onclick="runScript('sync')" id="btn-sync">🔄 Synchronisation</button>
+                <button class="button" onclick="runScript('tasks')" id="btn-tasks">📝 Créer Tâches</button>
+                <button class="button" onclick="runScript('assign')" id="btn-assign">👥 Assigner</button>
+                <button class="button" onclick="runScript('link')" id="btn-link">🔗 Lier Contacts</button>
+                <button class="button" onclick="runScript('relations')" id="btn-relations">🔄 Relations</button>
             </div>
             
             <div>
@@ -84,7 +102,7 @@ def index():
             </div>
             
             <div class="logs">
-                <h3>📋 Logs Récents</h3>
+                <h3>📋 Logs Récents <button class="button" onclick="refreshLogs()" style="float: right; padding: 5px 10px; font-size: 12px;">🔄 Actualiser</button></h3>
                 <div id="logs-container">Chargement des logs...</div>
             </div>
         </div>
@@ -93,8 +111,8 @@ def index():
             // Charger les données au démarrage
             loadData();
             
-            // Actualiser toutes les 30 secondes
-            setInterval(loadData, 30000);
+            // Actualiser toutes les 10 secondes
+            setInterval(loadData, 10000);
             
             function loadData() {
                 // Charger le statut
@@ -104,7 +122,8 @@ def index():
                         document.getElementById('status').textContent = data.status;
                         document.getElementById('last-run').textContent = new Date(data.last_run).toLocaleString('fr-FR');
                         document.getElementById('next-run').textContent = new Date(data.next_run).toLocaleString('fr-FR');
-                    });
+                    })
+                    .catch(error => console.error('Erreur chargement statut:', error));
                 
                 // Charger les statistiques
                 fetch('/api/stats')
@@ -113,33 +132,89 @@ def index():
                         document.getElementById('total-runs').textContent = data.total_runs;
                         document.getElementById('successful-runs').textContent = data.successful_runs;
                         document.getElementById('failed-runs').textContent = data.failed_runs;
-                    });
+                    })
+                    .catch(error => console.error('Erreur chargement stats:', error));
                 
                 // Charger les logs
+                refreshLogs();
+            }
+            
+            function refreshLogs() {
                 fetch('/api/logs')
                     .then(response => response.json())
                     .then(data => {
                         const logsContainer = document.getElementById('logs-container');
-                        logsContainer.innerHTML = data.logs.map(log => 
-                            `<div class="log-entry">${log}</div>`
-                        ).join('');
+                        if (data.logs && data.logs.length > 0) {
+                            logsContainer.innerHTML = data.logs.map(log => {
+                                let className = 'log-entry info';
+                                if (log.includes('succès') || log.includes('réussi')) className = 'log-entry success';
+                                if (log.includes('erreur') || log.includes('échec')) className = 'log-entry error';
+                                
+                                return `<div class="${className}">${log}</div>`;
+                            }).join('');
+                        } else {
+                            logsContainer.innerHTML = '<div class="log-entry">Aucun log disponible</div>';
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Erreur chargement logs:', error);
+                        document.getElementById('logs-container').innerHTML = '<div class="log-entry error">Erreur de chargement des logs</div>';
                     });
             }
             
             function runScript(scriptKey) {
-                fetch('/api/run/' + scriptKey, { method: 'POST' })
-                    .then(response => response.json())
-                    .then(data => {
-                        if (data.success) {
-                            alert('Script exécuté avec succès !');
-                            loadData(); // Recharger les données
-                        } else {
-                            alert('Erreur: ' + data.error);
-                        }
-                    })
-                    .catch(error => {
-                        alert('Erreur de connexion: ' + error);
-                    });
+                const button = document.getElementById('btn-' + scriptKey);
+                const originalText = button.textContent;
+                
+                // Désactiver le bouton et montrer le chargement
+                button.disabled = true;
+                button.textContent = '⏳ Exécution...';
+                button.classList.add('loading');
+                
+                // Exécuter le script
+                fetch('/api/run/' + scriptKey, { 
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({})
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        button.textContent = '✅ Succès !';
+                        button.style.background = '#27ae60';
+                        setTimeout(() => {
+                            button.textContent = originalText;
+                            button.style.background = '';
+                            button.disabled = false;
+                            button.classList.remove('loading');
+                        }, 2000);
+                        
+                        // Actualiser les données
+                        setTimeout(loadData, 1000);
+                    } else {
+                        button.textContent = '❌ Erreur';
+                        button.style.background = '#e74c3c';
+                        setTimeout(() => {
+                            button.textContent = originalText;
+                            button.style.background = '';
+                            button.disabled = false;
+                            button.classList.remove('loading');
+                        }, 3000);
+                    }
+                })
+                .catch(error => {
+                    console.error('Erreur exécution script:', error);
+                    button.textContent = '❌ Erreur';
+                    button.style.background = '#e74c3c';
+                    setTimeout(() => {
+                        button.textContent = originalText;
+                        button.style.background = '';
+                        button.disabled = false;
+                        button.classList.remove('loading');
+                    }, 3000);
+                });
             }
         </script>
     </body>
@@ -170,6 +245,10 @@ def api_logs():
 def api_run_script(script_key):
     """API pour exécuter un script"""
     try:
+        # Vérifier que la méthode est POST
+        if request.method != 'POST':
+            return jsonify({'success': False, 'error': 'Méthode non autorisée'}), 405
+        
         # Simulation d'exécution
         script_names = {
             'sync': 'Synchronisation Aircall',
@@ -181,22 +260,36 @@ def api_run_script(script_key):
         
         script_name = script_names.get(script_key, 'Script inconnu')
         
-        # Ajouter un log
-        log_entry = f"{datetime.now().strftime('%H:%M:%S')} - INFO - {script_name} exécuté via interface web"
-        system_state['logs'].append(log_entry)
+        # Ajouter un log d'exécution
+        add_log(f"🚀 Démarrage de {script_name}")
+        
+        # Simulation d'exécution
+        import time
+        time.sleep(1)  # Simulation d'un délai d'exécution
+        
+        # Ajouter un log de succès
+        add_log(f"✅ {script_name} exécuté avec succès")
         
         # Mettre à jour les statistiques
         system_state['stats']['total_runs'] += 1
         system_state['stats']['successful_runs'] += 1
         system_state['last_run'] = datetime.now().isoformat()
         
-        # Garder seulement les 50 derniers logs
-        if len(system_state['logs']) > 50:
-            system_state['logs'] = system_state['logs'][-50:]
+        logger.info(f"Script {script_key} exécuté avec succès")
         
-        return jsonify({'success': True, 'message': f'{script_name} exécuté avec succès'})
+        return jsonify({
+            'success': True, 
+            'message': f'{script_name} exécuté avec succès',
+            'script': script_key,
+            'timestamp': datetime.now().isoformat()
+        })
         
     except Exception as e:
+        error_msg = f"Erreur lors de l'exécution de {script_key}: {str(e)}"
+        add_log(f"❌ {error_msg}")
+        system_state['stats']['failed_runs'] += 1
+        system_state['stats']['last_error'] = error_msg
+        
         logger.error(f"Erreur API: {str(e)}")
         return jsonify({'success': False, 'error': str(e)}), 500
 
