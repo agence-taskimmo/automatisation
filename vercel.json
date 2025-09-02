@@ -2,14 +2,14 @@
   "version": 2,
   "builds": [
     {
-      "src": "web_interface_vercel_real.py",
+      "src": "web_interface_vercel_advanced.py",
       "use": "@vercel/python"
     }
   ],
   "routes": [
     {
       "src": "/(.*)",
-      "dest": "web_interface_vercel_real.py"
+      "dest": "web_interface_vercel_advanced.py"
     }
   ],
   "env": {
