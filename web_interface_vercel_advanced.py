@@ -704,6 +704,23 @@ def index():
                     customCadence.classList.remove('show');
                 }}
             }}
+            
+            // Exécution d'une automatisation spécifique
+            function executeAutomation(automationId) {{
+                // Créer un formulaire temporaire pour l'exécution
+                const form = document.createElement('form');
+                form.method = 'POST';
+                form.action = '/run-script';
+                
+                const input = document.createElement('input');
+                input.type = 'hidden';
+                input.name = 'script';
+                input.value = automationId;
+                
+                form.appendChild(input);
+                document.body.appendChild(form);
+                form.submit();
+            }}
         </script>
     </body>
     </html>
@@ -939,6 +956,36 @@ def health_check():
         'version': 'advanced-automations-taskimmo',
         'message': 'Interface Taskimmo avancée avec gestion des automatisations'
     }
+
+@app.route('/execute-automation/<automation_id>', methods=['POST'])
+def execute_automation_direct(automation_id):
+    """Exécute directement une automatisation depuis l'interface"""
+    try:
+        if automation_id not in automations_config:
+            flash(f'Automatisation inconnue: {automation_id}', 'error')
+            return redirect(url_for('index'))
+        
+        automation = automations_config[automation_id]
+        
+        # Vérifier que le script existe
+        if not os.path.exists(automation['script']):
+            flash(f'❌ Script introuvable: {automation["script"]}', 'error')
+            return redirect(url_for('index'))
+        
+        # Exécuter le vrai script
+        success, output = execute_real_script(automation_id)
+        
+        if success:
+            flash(f'✅ {automation["name"]} exécuté avec succès ! Vérifiez Monday.com', 'success')
+        else:
+            flash(f'❌ Erreur lors de l\'exécution de {automation["name"]}: {output}', 'error')
+        
+        return redirect(url_for('index'))
+        
+    except Exception as e:
+        logger.error(f"Erreur exécution automatisation: {str(e)}")
+        flash(f'Erreur système: {str(e)}', 'error')
+        return redirect(url_for('index'))
 
 if __name__ == '__main__':
     host = os.environ.get('HOST', '0.0.0.0')

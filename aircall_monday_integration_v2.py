@@ -242,6 +242,7 @@ class MondayAircallClient:
             boards(ids: [$boardId]) {
                 items_page {
                     items {
+                        id
                         column_values {
                             id
                             text
@@ -265,15 +266,32 @@ class MondayAircallClient:
                 items = data.get('data', {}).get('boards', [{}])[0].get('items_page', {}).get('items', [])
                 
                 existing_calls = set()
+                duplicate_check = {}  # Pour détecter les doublons potentiels
+                
                 for item in items:
+                    item_id = item.get('id', '')
                     column_values = item.get('column_values', [])
+                    
                     for col in column_values:
-                        if col.get('id') == 'text_mkv8ydgs':
+                        if col.get('id') == 'text_mkv8ydgs':  # ID_Aircall
                             call_id = col.get('text', '')
                             if call_id and call_id.startswith('aircall_'):
                                 existing_calls.add(call_id)
+                                
+                                # Vérification des doublons
+                                if call_id in duplicate_check:
+                                    print(f"⚠️  DOUBLON DÉTECTÉ: {call_id} apparaît plusieurs fois dans Monday.com")
+                                    print(f"   Item 1: {duplicate_check[call_id]}")
+                                    print(f"   Item 2: {item_id}")
+                                else:
+                                    duplicate_check[call_id] = item_id
                 
                 print(f"📋 {len(existing_calls)} appels Aircall déjà dans Monday.com")
+                
+                # Vérification de la cohérence
+                if len(existing_calls) != len(duplicate_check):
+                    print(f"⚠️  Incohérence détectée: {len(existing_calls)} IDs uniques vs {len(duplicate_check)} items")
+                
                 return existing_calls
             else:
                 print(f"❌ Erreur récupération appels existants: {response.status_code}")
@@ -609,6 +627,7 @@ class AircallMondayIntegration:
         print("🚀 Démarrage de l'intégration Aircall → Monday.com V2")
         print(f"📅 {datetime.now().strftime('%d/%m/%Y %H:%M:%S')}")
         print(f"⏰ Récupération des appels des {hours_back} dernières heures")
+        print("=" * 80)
         
         # Test de connexion Aircall
         if not self.aircall_client.test_connection():
@@ -626,7 +645,9 @@ class AircallMondayIntegration:
             return
         
         # Récupération des appels déjà dans Monday.com
+        print("\n🔍 Vérification des appels existants dans Monday.com...")
         existing_calls = self.monday_client.get_existing_aircall_calls()
+        print(f"📋 {len(existing_calls)} appels Aircall déjà présents dans Monday.com")
         
         # Traitement des appels
         success_count = 0
@@ -634,48 +655,66 @@ class AircallMondayIntegration:
         error_count = 0
         
         print(f"\n📊 Traitement de {len(calls)} appels...")
+        print("=" * 80)
         
-        for call in calls:
+        for i, call in enumerate(calls, 1):
             call_id = call.get('id', '')
             call_direction = call.get('direction', '')
             call_status = call.get('status', '')
             raw_digits = call.get('raw_digits', '')
             
+            print(f"\n📞 ITEM {i}/{len(calls)} - Appel #{call_id}")
+            print("-" * 60)
+            
             # Vérification si l'appel existe déjà
             aircall_id = f"aircall_{call_id}"
             if aircall_id in existing_calls:
                 skipped_count += 1
-                print(f"🔄 Appel {call_id} déjà dans Monday.com - Ignoré")
+                print(f"🔄 Appel {call_id} déjà dans Monday.com - IGNORÉ")
+                print(f"   ID Monday: {aircall_id}")
+                print(f"   Statut: Doublon détecté")
                 continue
             
-            print(f"\n📞 Traitement de l'appel {call_id}")
             print(f"   Direction: {call_direction}")
             print(f"   Statut: {call_status}")
             print(f"   Numéro: {PhoneNumberFormatter.format_phone_number(raw_digits)}")
+            print(f"   Durée: {call.get('duration', 0)} secondes")
+            print(f"   Date: {datetime.fromtimestamp(call.get('started_at', 0)).strftime('%d/%m/%Y %H:%M:%S')}")
             
             try:
+                print("   🔍 Récupération des données IA...")
                 # Récupération des données IA
                 ai_data = self.process_call_ai_data(call_id)
                 
+                print("   📝 Création de l'item dans Monday.com...")
                 # Création de l'item dans Monday.com
                 if self.monday_client.create_aircall_item(call, ai_data):
                     success_count += 1
-                    print(f"✅ Appel {call_id} ajouté avec succès")
+                    print(f"   ✅ Appel {call_id} ajouté avec succès dans Monday.com")
+                    print(f"   📋 ID Monday: {aircall_id}")
                 else:
                     error_count += 1
-                    print(f"❌ Erreur lors de l'ajout de l'appel {call_id}")
+                    print(f"   ❌ Erreur lors de l'ajout de l'appel {call_id}")
                 
                 # Pause entre les appels
                 time.sleep(1)
                 
             except Exception as e:
                 error_count += 1
-                print(f"❌ Erreur traitement appel {call_id}: {str(e)}")
+                print(f"   ❌ Erreur traitement appel {call_id}: {str(e)}")
+                print(f"   🔍 Détails: {type(e).__name__}")
+            
+            print("-" * 60)
         
-        print(f"\n✅ Intégration terminée!")
-        print(f"📊 Résultats: {success_count} appels ajoutés")
-        print(f"🔄 Appels ignorés (déjà présents): {skipped_count}")
-        print(f"❌ Erreurs: {error_count}")
+        print("\n" + "=" * 80)
+        print("🎯 RÉSUMÉ DE L'INTÉGRATION")
+        print("=" * 80)
+        print(f"📊 Total appels traités: {len(calls)}")
+        print(f"✅ Appels ajoutés avec succès: {success_count}")
+        print(f"🔄 Appels ignorés (doublons): {skipped_count}")
+        print(f"❌ Erreurs rencontrées: {error_count}")
+        print(f"📈 Taux de succès: {(success_count / len(calls) * 100):.1f}%")
+        print("=" * 80)
 
 def main():
     """Fonction principale"""
