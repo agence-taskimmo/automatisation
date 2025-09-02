@@ -1,0 +1,31 @@
+[Unit]
+Description=Service d'automatisation Aircall → Monday.com
+After=network.target
+Wants=network.target
+
+[Service]
+Type=simple
+User=timothy
+Group=timothy
+WorkingDirectory=/Users/timothy/Recupération
+ExecStart=/usr/bin/python3 /Users/timothy/Recupération/start_automation.py --scheduled --daemon
+ExecReload=/bin/kill -HUP $MAINPID
+Restart=always
+RestartSec=10
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=aircall-automation
+
+# Variables d'environnement
+Environment=PYTHONPATH=/Users/timothy/Recupération
+Environment=PYTHONUNBUFFERED=1
+
+# Sécurité
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/Users/timothy/Recupération/logs
+
+[Install]
+WantedBy=multi-user.target

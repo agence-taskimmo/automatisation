@@ -1,0 +1,74 @@
+# Configuration Cron pour l'automatisation Aircall → Monday.com
+# Copiez ces lignes dans votre crontab avec: crontab -e
+
+# =============================================================================
+# AUTOMATISATIONS QUOTIDIENNES
+# =============================================================================
+
+# Synchronisation complète à 8h00 du matin
+0 8 * * * cd /Users/timothy/Recupération && /usr/bin/python3 start_automation.py --once full >> logs/cron_full_sync.log 2>&1
+
+# Rapport quotidien à 18h00
+0 18 * * * cd /Users/timothy/Recupération && /usr/bin/python3 start_automation.py --once full >> logs/cron_daily_report.log 2>&1
+
+# Maintenance nocturne à 2h00 du matin
+0 2 * * * cd /Users/timothy/Recupération && /usr/bin/python3 start_automation.py --once full >> logs/cron_maintenance.log 2>&1
+
+# =============================================================================
+# AUTOMATISATIONS HORAIRES
+# =============================================================================
+
+# Synchronisation Aircall toutes les heures (de 9h à 18h)
+0 9-18 * * 1-5 cd /Users/timothy/Recupération && /usr/bin/python3 start_automation.py --once sync >> logs/cron_sync.log 2>&1
+
+# Création de tâches toutes les 2 heures (de 9h à 18h)
+0 9,11,13,15,17 * * 1-5 cd /Users/timothy/Recupération && /usr/bin/python3 start_automation.py --once tasks >> logs/cron_tasks.log 2>&1
+
+# Assignation intelligente toutes les 4 heures (de 9h à 17h)
+0 9,13,17 * * 1-5 cd /Users/timothy/Recupération && /usr/bin/python3 start_automation.py --once assign >> logs/cron_assign.log 2>&1
+
+# Liaison des contacts toutes les 6 heures (10h et 16h)
+0 10,16 * * 1-5 cd /Users/timothy/Recupération && /usr/bin/python3 start_automation.py --once link >> logs/cron_link.log 2>&1
+
+# Mise à jour des relations une fois par jour à 12h
+0 12 * * 1-5 cd /Users/timothy/Recupération && /usr/bin/python3 start_automation.py --once relations >> logs/cron_relations.log 2>&1
+
+# =============================================================================
+# AUTOMATISATIONS HEBDOMADAIRES
+# =============================================================================
+
+# Nettoyage des logs anciens tous les dimanches à 3h00
+0 3 * * 0 cd /Users/timothy/Recupération && find logs/ -name "*.log" -mtime +7 -delete >> logs/cron_cleanup.log 2>&1
+
+# Vérification de l'état du système tous les lundis à 9h00
+0 9 * * 1 cd /Users/timothy/Recupération && /usr/bin/python3 automation_manager.py --check-status >> logs/cron_health_check.log 2>&1
+
+# =============================================================================
+# NOTES IMPORTANTES
+# =============================================================================
+
+# 1. Assurez-vous que Python 3 est installé et accessible via /usr/bin/python3
+# 2. Vérifiez que le chemin /Users/timothy/Recupération est correct
+# 3. Créez le dossier logs/ s'il n'existe pas: mkdir -p logs/
+# 4. Rendez les scripts exécutables: chmod +x *.py
+# 5. Testez d'abord manuellement: python3 start_automation.py --once full
+
+# =============================================================================
+# COMMANDES UTILES
+# =============================================================================
+
+# Voir les tâches cron actuelles
+# crontab -l
+
+# Éditer les tâches cron
+# crontab -e
+
+# Supprimer toutes les tâches cron
+# crontab -r
+
+# Vérifier les logs cron
+# tail -f logs/cron_*.log
+
+# Tester une automatisation manuellement
+# cd /Users/timothy/Recupération
+# python3 start_automation.py --once full
