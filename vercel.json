@@ -4,12 +4,42 @@
     {
       "src": "web_interface_vercel_advanced.py",
       "use": "@vercel/python"
+    },
+    {
+      "src": "api/automation.py",
+      "use": "@vercel/python"
+    },
+    {
+      "src": "api/scheduler.py",
+      "use": "@vercel/python"
+    },
+    {
+      "src": "api/cron.py",
+      "use": "@vercel/python"
     }
   ],
   "routes": [
     {
+      "src": "/api/automation/(.*)",
+      "dest": "api/automation.py"
+    },
+    {
+      "src": "/api/scheduler/(.*)",
+      "dest": "api/scheduler.py"
+    },
+    {
+      "src": "/api/cron",
+      "dest": "api/cron.py"
+    },
+    {
       "src": "/(.*)",
       "dest": "web_interface_vercel_advanced.py"
+    }
+  ],
+  "crons": [
+    {
+      "path": "/api/cron",
+      "schedule": "0 9-18 * * 1-5"
     }
   ],
   "env": {
