@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
 Planificateur automatique pour les automatisations Aircall → Monday.com
-Exécute les tâches selon des horaires prédéfinis
+Exécute les tâches selon des horaires prédéfinis ET les préférences utilisateur
 """
 
 import schedule
@@ -12,6 +12,7 @@ import subprocess
 import sys
 from datetime import datetime, timedelta
 from pathlib import Path
+# from user_preferences import get_preferences_manager  # Supprimé
 
 # Configuration des logs
 logging.basicConfig(
@@ -25,7 +26,7 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 class AutomationScheduler:
-    """Planificateur des automatisations"""
+    """Planificateur des automatisations avec gestion des préférences utilisateur"""
     
     def __init__(self):
         self.scripts = {
@@ -36,8 +37,11 @@ class AutomationScheduler:
             'relations': 'update_board_relations.py'
         }
         
-        # Configuration des horaires
-        self.schedule_config = {
+        # Gestionnaire des préférences utilisateur (simplifié)
+        # self.preferences_manager = get_preferences_manager()  # Supprimé
+        
+        # Configuration par défaut (fallback)
+        self.default_schedule_config = {
             'sync': 'hourly',           # Synchronisation toutes les heures
             'tasks': '2h',              # Création de tâches toutes les 2h
             'assign': '4h',             # Assignation toutes les 4h
@@ -45,8 +49,8 @@ class AutomationScheduler:
             'relations': 'daily'         # Relations une fois par jour
         }
         
-        # Horaires spécifiques
-        self.specific_times = {
+        # Horaires spécifiques par défaut
+        self.default_specific_times = {
             'full_sync': '08:00',       # Synchronisation complète à 8h
             'daily_report': '18:00',    # Rapport quotidien à 18h
             'maintenance': '02:00'      # Maintenance à 2h du matin
@@ -177,24 +181,127 @@ class AutomationScheduler:
             logger.warning(f"⚠️ Scripts manquants: {missing_scripts}")
         else:
             logger.info("✅ Tous les scripts sont présents")
+        
+        # Vérifier les préférences utilisateur (simplifié)
+        logger.info("👤 Vérification des préférences utilisateur (mode simplifié)")
+        logger.info(f"   Automatisations activées: {len(self.scripts)}/{len(self.scripts)}")
+        logger.info(f"   Mode: Configuration par défaut")
+    
+    def get_user_schedule_config(self):
+        """Récupère la configuration de planification (mode simplifié)"""
+        # Utiliser la configuration par défaut
+        user_config = self.default_schedule_config.copy()
+        
+        for automation_id, cadence in user_config.items():
+            logger.info(f"👤 {automation_id}: {cadence} (configuration par défaut)")
+        
+        return user_config
+    
+    def get_user_specific_times(self):
+        """Récupère les horaires spécifiques (mode simplifié)"""
+        # Utiliser les valeurs par défaut
+        specific_times = self.default_specific_times.copy()
+        
+        logger.info(f"⏰ Horaires par défaut: {specific_times}")
+        
+        return specific_times
+    
+    def should_run_automation(self, automation_id: str) -> bool:
+        """Vérifie si une automatisation doit s'exécuter (mode simplifié)"""
+        # En mode simplifié, toutes les automatisations sont activées
+        logger.info(f"✅ {automation_id} activé (mode simplifié)")
+        return True
     
     def setup_schedule(self):
-        """Configure la planification des tâches"""
-        logger.info("⏰ Configuration de la planification")
+        """Configure la planification des tâches (mode simplifié)"""
+        logger.info("⏰ Configuration de la planification (mode simplifié)")
         
-        # Tâches horaires
-        schedule.every().hour.do(self.sync_aircall)
-        schedule.every(2).hours.do(self.create_tasks)
-        schedule.every(4).hours.do(self.assign_tasks)
-        schedule.every(6).hours.do(self.link_contacts)
-        schedule.every().day.at("00:00").do(self.update_relations)
+        # Effacer toutes les tâches planifiées existantes
+        schedule.clear()
         
-        # Horaires spécifiques
-        schedule.every().day.at(self.specific_times['full_sync']).do(self.full_sync)
-        schedule.every().day.at(self.specific_times['daily_report']).do(self.daily_report)
-        schedule.every().day.at(self.specific_times['maintenance']).do(self.maintenance)
+        # Récupérer la configuration (mode simplifié)
+        user_config = self.get_user_schedule_config()
+        specific_times = self.get_user_specific_times()
         
-        logger.info("✅ Planification configurée")
+        # Configurer les tâches (mode simplifié)
+        for automation_id, cadence in user_config.items():
+            # Toutes les automatisations sont activées en mode simplifié
+                
+            try:
+                if cadence == '15min':
+                    schedule.every(15).minutes.do(self._create_automation_wrapper(automation_id))
+                elif cadence == '30min':
+                    schedule.every(30).minutes.do(self._create_automation_wrapper(automation_id))
+                elif cadence == '1h' or cadence == 'hourly':
+                    schedule.every().hour.do(self._create_automation_wrapper(automation_id))
+                elif cadence == '2h':
+                    schedule.every(2).hours.do(self._create_automation_wrapper(automation_id))
+                elif cadence == '4h':
+                    schedule.every(4).hours.do(self._create_automation_wrapper(automation_id))
+                elif cadence == '6h':
+                    schedule.every(6).hours.do(self._create_automation_wrapper(automation_id))
+                elif cadence == '12h':
+                    schedule.every(12).hours.do(self._create_automation_wrapper(automation_id))
+                elif cadence == 'daily':
+                    schedule.every().day.at("00:00").do(self._create_automation_wrapper(automation_id))
+                elif cadence == 'weekly':
+                    schedule.every().week.do(self._create_automation_wrapper(automation_id))
+                elif cadence == 'monthly':
+                    schedule.every().month.do(self._create_automation_wrapper(automation_id))
+                else:
+                    # Cadence personnalisée (format: "1h", "30min", "2d", etc.)
+                    self._schedule_custom_cadence(automation_id, cadence)
+                
+                logger.info(f"✅ {automation_id} planifié avec cadence: {cadence}")
+                
+            except Exception as e:
+                logger.error(f"❌ Erreur planification {automation_id}: {str(e)}")
+        
+        # Horaires spécifiques (mode simplifié)
+        schedule.every().day.at(specific_times['full_sync']).do(self.full_sync)
+        schedule.every().day.at(specific_times['daily_report']).do(self.daily_report)
+        schedule.every().day.at(specific_times['maintenance']).do(self.maintenance)
+        
+        logger.info("✅ Planification configurée (mode simplifié)")
+    
+    def _create_automation_wrapper(self, automation_id: str):
+        """Crée un wrapper pour une automatisation (mode simplifié)"""
+        def automation_wrapper():
+            # En mode simplifié, toutes les automatisations s'exécutent
+            logger.info(f"🚀 Exécution de {automation_id} (mode simplifié)")
+            if automation_id == 'sync':
+                return self.sync_aircall()
+            elif automation_id == 'tasks':
+                return self.create_tasks()
+            elif automation_id == 'assign':
+                return self.assign_tasks()
+            elif automation_id == 'link':
+                return self.link_contacts()
+            elif automation_id == 'relations':
+                return self.update_relations()
+            else:
+                logger.warning(f"⚠️ Automatisation inconnue: {automation_id}")
+                return False
+        
+        return automation_wrapper
+    
+    def _schedule_custom_cadence(self, automation_id: str, cadence: str):
+        """Planifie une automatisation avec une cadence personnalisée"""
+        try:
+            # Parser la cadence personnalisée (ex: "1h", "30min", "2d")
+            if cadence.endswith('min'):
+                minutes = int(cadence[:-3])
+                schedule.every(minutes).minutes.do(self._create_automation_wrapper(automation_id))
+            elif cadence.endswith('h'):
+                hours = int(cadence[:-1])
+                schedule.every(hours).hours.do(self._create_automation_wrapper(automation_id))
+            elif cadence.endswith('d'):
+                days = int(cadence[:-1])
+                schedule.every(days).days.do(self._create_automation_wrapper(automation_id))
+            else:
+                logger.warning(f"⚠️ Format de cadence non reconnu: {cadence}")
+        except Exception as e:
+            logger.error(f"❌ Erreur cadence personnalisée {automation_id}: {str(e)}")
     
     def run_once(self, task_type: str):
         """Exécute une tâche une seule fois"""

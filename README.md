@@ -8,9 +8,6 @@ Centre d'automatisation complet pour l'agence Taskimmo, intégrant Aircall et Mo
 
 ## 🏗️ Architecture
 
-### **Interface Web (Vercel)**
-- **`web_interface_vercel_advanced.py`** - Interface web avancée avec gestion complète des automatisations
-
 ### **Scripts d'Automatisation**
 - **`aircall_monday_integration_v2.py`** - Synchronisation Aircall → Monday.com
 - **`create_tasks_with_agent.py`** - Création de tâches depuis les actions IA
@@ -26,28 +23,20 @@ Centre d'automatisation complet pour l'agence Taskimmo, intégrant Aircall et Mo
 - **`test_automation.py`** - Tests du système
 
 ### **Déploiement**
-- **`vercel.json`** - Configuration Vercel
 - **`requirements.txt`** - Dépendances Python
-- **`requirements_vercel.txt`** - Dépendances Vercel
 
 ## 🚀 Déploiement Rapide
 
-### **Option 1 : Vercel (Recommandé)**
-```bash
-# Le projet est déjà configuré pour Vercel
-# Déploiement automatique depuis GitHub
-```
-
-### **Option 2 : Serveur Local**
+### **Serveur Local**
 ```bash
 # Installation des dépendances
 pip install -r requirements.txt
 
-# Démarrage de l'interface web
-python web_interface_vercel_advanced.py
-
 # Démarrage des automatisations
 python start_automation.py --start
+
+# Ou utiliser le gestionnaire
+python automation_manager.py
 ```
 
 ## ⚙️ Configuration
@@ -65,14 +54,6 @@ python start_automation.py --start
 
 ## 🎯 Fonctionnalités
 
-### **Interface Web**
-- ✅ **Logo Taskimmo** personnalisé
-- ✅ **Gestion des automatisations** avec activation/désactivation
-- ✅ **Contrôles de cadence** personnalisables
-- ✅ **Exécution manuelle** avec menu déroulant
-- ✅ **Logs en temps réel** structurés
-- ✅ **Statistiques** d'exécution
-
 ### **Automatisations**
 - ✅ **Synchronisation Aircall** avec détection de doublons
 - ✅ **Création de tâches** depuis les actions IA
@@ -88,19 +69,20 @@ python start_automation.py --start
 
 ## 📱 Utilisation
 
-### **1. Accès à l'interface**
-- Ouvrez l'URL Vercel déployée
-- Interface moderne avec logo Taskimmo
+### **1. Gestionnaire d'automatisations**
+- Utilisez `python automation_manager.py` pour l'interface interactive
+- Exécution manuelle des automatisations
+- Vérification de l'état du système
 
-### **2. Gestion des automatisations**
-- **Activer/Désactiver** chaque automatisation
-- **Modifier les cadences** selon vos besoins
-- **Exécuter manuellement** quand nécessaire
+### **2. Planificateur automatique**
+- Utilisez `python start_automation.py --scheduled` pour l'automatisation continue
+- Planification configurable des tâches
+- Logs automatiques
 
-### **3. Surveillance**
-- **Logs en temps réel** de toutes les actions
-- **Statistiques** d'exécution
-- **Statut** de chaque automatisation
+### **3. Tests et maintenance**
+- Utilisez `python test_automation.py` pour vérifier le système
+- Logs détaillés de toutes les actions
+- Surveillance des performances
 
 ## 🔧 Maintenance
 
@@ -116,9 +98,7 @@ python start_automation.py --start
 
 ## 📚 Documentation
 
-- **`GUIDE_DEPLOIEMENT_VERCEL.md`** - Déploiement sur Vercel
-- **`GUIDE_UTILISATION.md`** - Guide d'utilisation
-- **`GUIDE_DEPLOIEMENT_WEB.md`** - Déploiement serveur
+- **`README.md`** - Documentation principale
 
 ## 🆘 Support
 
