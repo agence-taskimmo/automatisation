@@ -28,6 +28,18 @@
     {
       "src": "api/automation_monitor.py",
       "use": "@vercel/python"
+    },
+    {
+      "src": "api/dynamic_scheduler.py",
+      "use": "@vercel/python"
+    },
+    {
+      "src": "api/schedule_manager.py",
+      "use": "@vercel/python"
+    },
+    {
+      "src": "api/vercel_config_updater.py",
+      "use": "@vercel/python"
     }
   ],
   "routes": [
@@ -54,6 +66,14 @@
     {
       "src": "/api/monitor/(.*)",
       "dest": "api/automation_monitor.py"
+    },
+    {
+      "src": "/api/schedule/(.*)",
+      "dest": "api/schedule_manager.py"
+    },
+    {
+      "src": "/api/vercel/(.*)",
+      "dest": "api/vercel_config_updater.py"
     },
     {
       "src": "/(.*)",

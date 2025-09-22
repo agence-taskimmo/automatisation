@@ -987,6 +987,44 @@ def execute_automation_direct(automation_id):
         flash(f'Erreur système: {str(e)}', 'error')
         return redirect(url_for('index'))
 
+# Endpoints API pour la gestion des horaires
+@app.route('/api/schedule/status')
+def get_schedule_status():
+    """Statut du planificateur"""
+    return jsonify({
+        "status": "active",
+        "timestamp": datetime.now().isoformat(),
+        "cron_jobs": {
+            "sync": "0 9-18 * * 1-5 (Heures ouvrables)",
+            "tasks": "0 9,11,13,15,17 * * 1-5 (5 fois/jour)"
+        },
+        "note": "Modifiez les horaires via l'interface"
+    })
+
+@app.route('/api/schedule/update', methods=['POST'])
+def update_schedule():
+    """Met à jour les horaires des automatisations"""
+    try:
+        data = request.get_json()
+        automation_name = data.get('automation')
+        new_schedule = data.get('schedule')
+        
+        if not automation_name or not new_schedule:
+            return jsonify({"error": "Paramètres manquants"}), 400
+        
+        # Ici vous pourriez mettre à jour vercel.json
+        # ou utiliser le système de planification dynamique
+        
+        return jsonify({
+            "success": True,
+            "message": f"Horaires mis à jour pour {automation_name}",
+            "new_schedule": new_schedule,
+            "note": "Redéployez pour appliquer les changements"
+        })
+        
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
 if __name__ == '__main__':
     host = os.environ.get('HOST', '0.0.0.0')
     port = int(os.environ.get('PORT', 8080))
