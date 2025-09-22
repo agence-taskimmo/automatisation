@@ -40,6 +40,10 @@
     {
       "src": "api/vercel_config_updater.py",
       "use": "@vercel/python"
+    },
+    {
+      "src": "api/test_simple.py",
+      "use": "@vercel/python"
     }
   ],
   "routes": [
@@ -74,6 +78,10 @@
     {
       "src": "/api/vercel/(.*)",
       "dest": "api/vercel_config_updater.py"
+    },
+    {
+      "src": "/api/test",
+      "dest": "api/test_simple.py"
     },
     {
       "src": "/(.*)",

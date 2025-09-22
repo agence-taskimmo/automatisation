@@ -13,7 +13,12 @@ from datetime import datetime
 # Ajouter le répertoire parent au path
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from config import get_monday_headers
+try:
+    from config import get_monday_headers
+except ImportError:
+    # Utiliser la configuration Vercel
+    from config_vercel import get_monday_headers
+
 import requests
 
 # Configuration du logging
