@@ -28,21 +28,13 @@ system_state = {
     }
 }
 
-# Configuration complète des automatisations
+# Configuration des automatisations
 automations_config = {
     'sync': {
         'id': 'sync',
         'name': 'Synchronisation Aircall',
         'description': 'Synchronise les nouveaux appels Aircall avec Monday.com',
-        'script': 'aircall_monday_integration_v2.py',
-        'args': ['--sync-only'],
         'enabled': True,
-        'cadence': 'hourly',
-        'custom_cadence': '1h',
-        'last_execution': None,
-        'next_execution': None,
-        'execution_count': 0,
-        'success_rate': 100.0,
         'icon': 'fas fa-sync-alt',
         'color': 'primary'
     },
@@ -50,49 +42,9 @@ automations_config = {
         'id': 'tasks',
         'name': 'Création de Tâches',
         'description': 'Crée des tâches depuis les actions IA détectées',
-        'script': 'create_tasks_with_agent.py',
-        'args': [],
         'enabled': True,
-        'cadence': '2h',
-        'custom_cadence': '2h',
-        'last_execution': None,
-        'next_execution': None,
-        'execution_count': 0,
-        'success_rate': 100.0,
         'icon': 'fas fa-tasks',
         'color': 'success'
-    },
-    'assign': {
-        'id': 'assign',
-        'name': 'Assignation Intelligente',
-        'description': 'Assigne les tâches aux bons agents selon leurs compétences',
-        'script': 'smart_task_assigner.py',
-        'args': [],
-        'enabled': True,
-        'cadence': '4h',
-        'custom_cadence': '4h',
-        'last_execution': None,
-        'next_execution': None,
-        'execution_count': 0,
-        'success_rate': 100.0,
-        'icon': 'fas fa-user-tie',
-        'color': 'info'
-    },
-    'link': {
-        'id': 'link',
-        'name': 'Liaison Contacts',
-        'description': 'Lie les appels aux contacts existants dans Monday.com',
-        'script': 'link_calls_to_contacts.py',
-        'args': [],
-        'enabled': True,
-        'cadence': '6h',
-        'custom_cadence': '6h',
-        'last_execution': None,
-        'next_execution': None,
-        'execution_count': 0,
-        'success_rate': 100.0,
-        'icon': 'fas fa-link',
-        'color': 'warning'
     }
 }
 
@@ -272,104 +224,6 @@ INDEX_TEMPLATE = """
 </html>
 """
 
-def add_log(message, level='INFO'):
-    """Ajoute un log au système"""
-    timestamp = datetime.now().strftime('%H:%M:%S')
-    log_entry = f"{timestamp} - {level} - {message}"
-    system_state['logs'].append(log_entry)
-    
-    # Garder seulement les 50 derniers logs
-    if len(system_state['logs']) > 50:
-        system_state['logs'] = system_state['logs'][-50:]
-    
-    logger.info(log_entry)
-
-def execute_automation(automation_id):
-    """Exécute une automatisation spécifique"""
-    try:
-        if automation_id not in automations_config:
-            return False, f"Automatisation {automation_id} non trouvée"
-        
-        automation = automations_config[automation_id]
-        
-        if not automation['enabled']:
-            return False, f"{automation['name']} est désactivée"
-        
-        add_log(f"🚀 Démarrage de {automation['name']}", 'INFO')
-        
-        # Simuler l'exécution (remplacer par l'exécution réelle)
-        script_path = automation['script']
-        args = automation['args']
-        
-        # Vérifier si le script existe
-        if not os.path.exists(script_path):
-            add_log(f"❌ Script {script_path} introuvable", 'ERROR')
-            return False, f"Script {script_path} introuvable"
-        
-        # Exécuter le script
-        cmd = ['python', script_path] + args
-        result = subprocess.run(cmd, capture_output=True, text=True, timeout=300)
-        
-        if result.returncode == 0:
-            success_msg = f"✅ {automation['name']} exécutée avec succès"
-            add_log(success_msg, 'SUCCESS')
-            
-            if result.stdout.strip():
-                add_log(f"📤 Sortie: {result.stdout.strip()}", 'INFO')
-            
-            # Mettre à jour les statistiques
-            system_state['stats']['total_runs'] += 1
-            system_state['stats']['successful_runs'] += 1
-            system_state['last_run'] = datetime.now().isoformat()
-            
-            # Mettre à jour l'automatisation
-            automation['last_execution'] = datetime.now().isoformat()
-            automation['execution_count'] += 1
-            
-            return True, result.stdout
-            
-        else:
-            error_msg = f"❌ {automation['name']} a échoué (code: {result.returncode})"
-            add_log(error_msg, 'ERROR')
-            
-            if result.stderr.strip():
-                add_log(f"🚨 Erreur: {result.stderr.strip()}", 'ERROR')
-            
-            if result.stdout.strip():
-                add_log(f"📤 Sortie: {result.stdout.strip()}")
-            
-            # Mettre à jour les statistiques
-            system_state['stats']['total_runs'] += 1
-            system_state['stats']['failed_runs'] += 1
-            system_state['stats']['last_error'] = error_msg
-            
-            # Mettre à jour l'automatisation
-            automation['last_execution'] = datetime.now().isoformat()
-            automation['execution_count'] += 1
-            
-            return False, result.stderr
-        
-    except subprocess.TimeoutExpired:
-        error_msg = f"⏰ {automations_config[automation_id]['name']} a dépassé le délai d'exécution (5 minutes)"
-        add_log(error_msg, 'ERROR')
-        system_state['stats']['failed_runs'] += 1
-        system_state['stats']['last_error'] = error_msg
-        return False, "Timeout d'exécution"
-        
-    except FileNotFoundError as e:
-        error_msg = f"📁 Fichier introuvable: {str(e)}"
-        add_log(error_msg, 'ERROR')
-        system_state['stats']['failed_runs'] += 1
-        system_state['stats']['last_error'] = error_msg
-        return False, str(e)
-        
-    except Exception as e:
-        error_msg = f"💥 Erreur système: {str(e)}"
-        add_log(error_msg, 'ERROR')
-        system_state['stats']['failed_runs'] += 1
-        system_state['stats']['last_error'] = error_msg
-        return False, str(e)
-
 # Routes principales
 @app.route('/')
 def index():
@@ -395,65 +249,13 @@ def monitoring():
     })
 
 # API endpoints
-# Routes pour les actions
-@app.route('/run/<automation_id>')
-def run_automation(automation_id):
-    """Exécute une automatisation"""
-    try:
-        success, message = execute_automation(automation_id)
-        
-        if success:
-            flash(f'✅ {automations_config[automation_id]["name"]} exécutée avec succès', 'success')
-        else:
-            flash(f'❌ Erreur: {message}', 'error')
-        
-        return redirect(url_for('index'))
-        
-    except Exception as e:
-        logger.error(f"Erreur exécution automatisation: {str(e)}")
-        flash(f'Erreur système: {str(e)}', 'error')
-        return redirect(url_for('index'))
-
-@app.route('/toggle/<automation_id>')
-def toggle_automation(automation_id):
-    """Active/désactive une automatisation"""
-    try:
-        if automation_id in automations_config:
-            automations_config[automation_id]['enabled'] = not automations_config[automation_id]['enabled']
-            status = "activée" if automations_config[automation_id]['enabled'] else "désactivée"
-            add_log(f"🔄 {automations_config[automation_id]['name']} {status}", 'INFO')
-            flash(f'{automations_config[automation_id]["name"]} {status}', 'success')
-        else:
-            flash('Automatisation non trouvée', 'error')
-        
-        return redirect(url_for('index'))
-        
-    except Exception as e:
-        logger.error(f"Erreur toggle automatisation: {str(e)}")
-        flash(f'Erreur: {str(e)}', 'error')
-        return redirect(url_for('index'))
-
-@app.route('/clear_logs')
-def clear_logs():
-    """Efface les logs"""
-    system_state['logs'] = [f"{datetime.now().strftime('%H:%M:%S')} - INFO - Logs effacés"]
-    flash('Logs effacés', 'info')
-        return redirect(url_for('index'))
-        
-@app.route('/logs')
-def get_logs():
-    """Retourne les logs en JSON"""
-    return jsonify({'logs': system_state['logs']})
-
 @app.route('/api/status')
 def api_status():
     """Statut de l'API"""
     return jsonify({
         "status": "active",
         "timestamp": datetime.now().isoformat(),
-        "automations": len(automations_config),
-        "enabled_automations": len([a for a in automations_config.values() if a['enabled']]),
-        "stats": system_state['stats']
+        "message": "Interface Taskimmo opérationnelle"
     })
 
 if __name__ == '__main__':
