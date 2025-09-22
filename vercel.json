@@ -16,6 +16,14 @@
     {
       "src": "api/cron.py",
       "use": "@vercel/python"
+    },
+    {
+      "src": "api/optimized_sync.py",
+      "use": "@vercel/python"
+    },
+    {
+      "src": "api/optimized_tasks.py",
+      "use": "@vercel/python"
     }
   ],
   "routes": [
@@ -32,14 +40,26 @@
       "dest": "api/cron.py"
     },
     {
+      "src": "/api/optimized_sync",
+      "dest": "api/optimized_sync.py"
+    },
+    {
+      "src": "/api/optimized_tasks",
+      "dest": "api/optimized_tasks.py"
+    },
+    {
       "src": "/(.*)",
       "dest": "web_interface_vercel_advanced.py"
     }
   ],
   "crons": [
     {
-      "path": "/api/cron",
+      "path": "/api/optimized_sync",
       "schedule": "0 9-18 * * 1-5"
+    },
+    {
+      "path": "/api/optimized_tasks", 
+      "schedule": "0 9,11,13,15,17 * * 1-5"
     }
   ],
   "env": {
