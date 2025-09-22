@@ -24,6 +24,10 @@
     {
       "src": "api/optimized_tasks.py",
       "use": "@vercel/python"
+    },
+    {
+      "src": "api/automation_monitor.py",
+      "use": "@vercel/python"
     }
   ],
   "routes": [
@@ -46,6 +50,10 @@
     {
       "src": "/api/optimized_tasks",
       "dest": "api/optimized_tasks.py"
+    },
+    {
+      "src": "/api/monitor/(.*)",
+      "dest": "api/automation_monitor.py"
     },
     {
       "src": "/(.*)",

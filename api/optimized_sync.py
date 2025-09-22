@@ -20,6 +20,52 @@ import requests
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
+def log_automation_start(automation_name):
+    """Log le début d'une automatisation"""
+    log_entry = {
+        "timestamp": datetime.now().isoformat(),
+        "level": "INFO",
+        "automation": automation_name,
+        "status": "STARTED",
+        "message": f"🚀 Démarrage de {automation_name}"
+    }
+    logger.info(f"📊 LOG START: {json.dumps(log_entry)}")
+
+def log_automation_progress(automation_name, step, details):
+    """Log le progrès d'une automatisation"""
+    log_entry = {
+        "timestamp": datetime.now().isoformat(),
+        "level": "INFO",
+        "automation": automation_name,
+        "status": "IN_PROGRESS",
+        "message": f"🔄 {automation_name} - {step}",
+        "data": details
+    }
+    logger.info(f"📊 LOG PROGRESS: {json.dumps(log_entry)}")
+
+def log_automation_success(automation_name, result):
+    """Log le succès d'une automatisation"""
+    log_entry = {
+        "timestamp": datetime.now().isoformat(),
+        "level": "SUCCESS",
+        "automation": automation_name,
+        "status": "COMPLETED",
+        "message": f"✅ {automation_name} terminé avec succès",
+        "data": result
+    }
+    logger.info(f"📊 LOG SUCCESS: {json.dumps(log_entry)}")
+
+def log_automation_error(automation_name, error):
+    """Log une erreur d'automatisation"""
+    log_entry = {
+        "timestamp": datetime.now().isoformat(),
+        "level": "ERROR",
+        "automation": automation_name,
+        "status": "FAILED",
+        "message": f"❌ {automation_name} échoué: {str(error)}"
+    }
+    logger.error(f"📊 LOG ERROR: {json.dumps(log_entry)}")
+
 def optimized_aircall_sync():
     """
     Synchronisation optimisée pour Vercel Pro
@@ -28,6 +74,8 @@ def optimized_aircall_sync():
     - Traitement par batch
     """
     try:
+        # Log du début
+        log_automation_start("sync_aircall")
         logger.info("🚀 Démarrage synchronisation optimisée Aircall")
         
         # Configuration
@@ -44,6 +92,8 @@ def optimized_aircall_sync():
             'order': 'desc'
         }
         
+        # Log du progrès
+        log_automation_progress("sync_aircall", "fetching_calls", {"params": params})
         logger.info("📞 Récupération des 10 derniers appels Aircall...")
         response = requests.get(AIRCALL_API_URL, headers=aircall_headers, params=params, timeout=30)
         
@@ -97,14 +147,20 @@ def optimized_aircall_sync():
                 logger.error(f"❌ Erreur traitement appel {call.get('id')}: {str(e)}")
                 continue
         
-        return {
+        result = {
             "success": True,
             "processed": processed,
             "total_calls": len(calls),
             "timestamp": datetime.now().isoformat()
         }
         
+        # Log du succès
+        log_automation_success("sync_aircall", result)
+        return result
+        
     except Exception as e:
+        # Log de l'erreur
+        log_automation_error("sync_aircall", e)
         logger.error(f"❌ Erreur synchronisation: {str(e)}")
         return {"error": str(e)}
 
