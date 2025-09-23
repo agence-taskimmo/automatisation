@@ -800,7 +800,7 @@ def clear_logs():
     """Efface les logs"""
     system_state['logs'] = [f"{datetime.now().strftime('%H:%M:%S')} - INFO - Logs effacés"]
     flash('Logs effacés', 'info')
-            return redirect(url_for('index'))
+    return redirect(url_for('index'))
         
 @app.route('/logs')
 def get_logs():
