@@ -505,9 +505,9 @@ def execute_aircall_sync():
         
         add_log("📞 Exécution de l'intégration Aircall...")
         
-        # Utiliser la méthode run_integration existante (limiter à 1 heure pour éviter timeout)
+        # Utiliser la méthode run_integration existante (12 heures pour récupérer plus d'appels)
         try:
-            integration.run_integration(hours_back=1)
+            integration.run_integration(hours_back=12)
             add_log("✅ Intégration Aircall exécutée avec succès")
             return {"success": True, "message": "Intégration Aircall exécutée avec succès"}
         except Exception as e:
