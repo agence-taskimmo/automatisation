@@ -491,10 +491,14 @@ def execute_aircall_sync():
         
         try:
             from aircall_monday_integration_v2 import AircallClient, MondayAircallClient
-            from config import get_monday_headers, get_aircall_headers, BOARD_IDS, COLUMN_IDS
+            from api.config_vercel import get_monday_headers, get_aircall_headers, get_board_ids, get_column_ids
         except ImportError as e:
             add_log(f"⚠️ Modules d'automatisation non trouvés: {str(e)}")
             return {"success": False, "error": f"Modules manquants: {str(e)}"}
+        
+        # Récupérer les configurations
+        board_ids = get_board_ids()
+        column_ids = get_column_ids()
         
         # Exécution de la synchronisation
         aircall_client = AircallClient()
@@ -516,7 +520,7 @@ def execute_aircall_sync():
                 add_log(f"📞 Traitement de l'appel {call['id']}...")
                 
                 # Vérifier si l'appel existe déjà
-                existing_ids = monday_client.get_existing_aircall_calls(BOARD_IDS['aircall_board_id'], COLUMN_IDS['aircall_id_column'])
+                existing_ids = monday_client.get_existing_aircall_calls(board_ids['aircall_board_id'], column_ids['aircall_id_column'])
                 if str(call['id']) not in existing_ids:
                     # Créer l'item dans Monday.com
                     ai_data = monday_client.process_call_ai_data(call['id'], get_aircall_headers())
@@ -524,7 +528,7 @@ def execute_aircall_sync():
                     
                     # Ajouter l'item
                     item_name = f"Appel Aircall #{call['id']} - {call.get('raw_digits', 'N/A')}"
-                    monday_client.create_monday_item(BOARD_IDS['aircall_board_id'], item_name, column_values)
+                    monday_client.create_monday_item(board_ids['aircall_board_id'], item_name, column_values)
                     synced_count += 1
                     add_log(f"✅ Appel {call['id']} synchronisé dans Monday.com")
                 else:
@@ -554,10 +558,15 @@ def execute_task_creation():
         try:
             from create_tasks_with_agent import TaskCreator
             from aircall_monday_integration_v2 import MondayAircallClient
-            from config import get_monday_headers, BOARD_IDS, COLUMN_IDS, AGENT_MAPPING
+            from api.config_vercel import get_monday_headers, get_board_ids, get_column_ids, get_agent_mapping
         except ImportError as e:
             add_log(f"⚠️ Modules d'automatisation non trouvés: {str(e)}")
             return {"success": False, "error": f"Modules manquants: {str(e)}"}
+        
+        # Récupérer les configurations
+        board_ids = get_board_ids()
+        column_ids = get_column_ids()
+        agent_mapping = get_agent_mapping()
         
         # Exécution de la création de tâches
         monday_client = MondayAircallClient()
@@ -565,7 +574,7 @@ def execute_task_creation():
         
         add_log("📋 Récupération des appels avec actions IA...")
         # Récupérer les appels avec des actions IA
-        items = monday_client.get_items_with_actions_ia(BOARD_IDS['aircall_board_id'], COLUMN_IDS['actions_ia_column'])
+        items = monday_client.get_items_with_actions_ia(board_ids['aircall_board_id'], column_ids['actions_ia_column'])
         
         if not items:
             add_log("ℹ️ Aucun appel avec actions IA à traiter")
@@ -613,7 +622,7 @@ def execute_contact_linking():
         
         try:
             from link_calls_to_contacts import MondayContactLinker
-            from config import get_monday_headers, BOARD_IDS, COLUMN_IDS
+            from api.config_vercel import get_monday_headers, get_board_ids, get_column_ids
         except ImportError as e:
             add_log(f"⚠️ Modules d'automatisation non trouvés: {str(e)}")
             return {"success": False, "error": f"Modules manquants: {str(e)}"}
