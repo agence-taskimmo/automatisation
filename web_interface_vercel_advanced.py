@@ -490,7 +490,7 @@ def execute_aircall_sync():
         sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
         
         try:
-            from aircall_monday_integration_v2 import AircallClient, MondayAircallClient
+            from aircall_monday_integration_v2 import AircallMondayIntegration
             from api.config_vercel import get_monday_headers, get_aircall_headers, get_board_ids, get_column_ids
         except ImportError as e:
             add_log(f"⚠️ Modules d'automatisation non trouvés: {str(e)}")
@@ -500,50 +500,19 @@ def execute_aircall_sync():
         board_ids = get_board_ids()
         column_ids = get_column_ids()
         
-        # Récupérer les configurations Aircall
-        aircall_api_id = os.getenv('AIRCALL_API_ID', 'cc1c0e0e08b34c3394245889a4377872')
-        aircall_api_token = os.getenv('AIRCALL_API_TOKEN', '3e5d6de7ef4d4bd1ebbca9c590e2e981')
+        # Exécution de la synchronisation avec la classe principale
+        integration = AircallMondayIntegration(board_ids['aircall_board_id'])
         
-        # Exécution de la synchronisation
-        aircall_client = AircallClient(aircall_api_id, aircall_api_token)
-        monday_client = MondayAircallClient(board_ids['aircall_board_id'])
+        add_log("📞 Exécution de l'intégration Aircall...")
         
-        # Récupérer les appels Aircall
-        add_log("📞 Récupération des appels Aircall...")
-        calls = aircall_client.get_calls()
-        if not calls:
-            add_log("ℹ️ Aucun nouvel appel à synchroniser")
-            return {"success": True, "message": "Aucun nouvel appel à synchroniser"}
-        
-        add_log(f"📞 {len(calls)} appels trouvés")
-        
-        # Synchroniser avec Monday.com
-        synced_count = 0
-        for call in calls[:5]:  # Limiter à 5 appels pour éviter les timeouts
-            try:
-                add_log(f"📞 Traitement de l'appel {call['id']}...")
-                
-                # Vérifier si l'appel existe déjà
-                existing_ids = monday_client.get_existing_aircall_calls(board_ids['aircall_board_id'], column_ids['aircall_id_column'])
-                if str(call['id']) not in existing_ids:
-                    # Créer l'item dans Monday.com
-                    ai_data = monday_client.process_call_ai_data(call['id'], get_aircall_headers())
-                    column_values = monday_client.create_aircall_item(call, ai_data)
-                    
-                    # Ajouter l'item
-                    item_name = f"Appel Aircall #{call['id']} - {call.get('raw_digits', 'N/A')}"
-                    monday_client.create_monday_item(board_ids['aircall_board_id'], item_name, column_values)
-                    synced_count += 1
-                    add_log(f"✅ Appel {call['id']} synchronisé dans Monday.com")
-                else:
-                    add_log(f"ℹ️ Appel {call['id']} déjà synchronisé")
-                    
-            except Exception as e:
-                add_log(f"❌ Erreur synchronisation appel {call['id']}: {str(e)}")
-                continue
-        
-        add_log(f"✅ Synchronisation terminée: {synced_count} appels synchronisés")
-        return {"success": True, "message": f"{synced_count} appels synchronisés avec succès"}
+        # Utiliser la méthode run_integration existante (limiter à 1 heure pour éviter timeout)
+        try:
+            integration.run_integration(hours_back=1)
+            add_log("✅ Intégration Aircall exécutée avec succès")
+            return {"success": True, "message": "Intégration Aircall exécutée avec succès"}
+        except Exception as e:
+            add_log(f"❌ Erreur lors de l'intégration Aircall: {str(e)}")
+            return {"success": False, "error": str(e)}
         
     except Exception as e:
         add_log(f"❌ Erreur synchronisation Aircall: {str(e)}")
