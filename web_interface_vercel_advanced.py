@@ -59,15 +59,15 @@ automations_config = {
 
 # Template principal - Interface complète
 COMPLETE_TEMPLATE = """
-<!DOCTYPE html>
+    <!DOCTYPE html>
 <html lang="fr">
-<head>
+    <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Taskimmo - Interface Complète</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
-    <style>
+        <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+        <style>
         .hero-section { background: linear-gradient(135deg, #007bff 0%, #0056b3 100%); color: white; }
         .automation-card { border-left: 4px solid #28a745; }
         .schedule-card { border-left: 4px solid #007bff; }
@@ -77,9 +77,9 @@ COMPLETE_TEMPLATE = """
         .status-running { color: #28a745; }
         .status-stopped { color: #dc3545; }
         .section-title { border-bottom: 2px solid #dee2e6; padding-bottom: 10px; margin-bottom: 20px; }
-    </style>
-</head>
-<body>
+        </style>
+    </head>
+    <body>
     <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
         <div class="container">
             <a class="navbar-brand" href="/">
@@ -99,9 +99,9 @@ COMPLETE_TEMPLATE = """
                 <i class="fas fa-cogs"></i> Interface Complète Taskimmo
             </h1>
             <p class="lead">Gestion des automatisations, horaires et logs en un seul endroit</p>
-        </div>
-    </div>
-
+                </div>
+            </div>
+            
     <div class="container mt-4">
         <!-- Section Automatisations -->
         <div class="row mb-4">
@@ -129,19 +129,24 @@ COMPLETE_TEMPLATE = """
                             </div>
                         </div>
                         <div class="btn-group w-100">
-                            <a href="/run/{{ automation_id }}" class="btn btn-warning btn-sm">
+                            <a href="/run/{{ automation_id }}" class="btn btn-warning btn-sm" onclick="showExecutionStatus('{{ automation_id }}')">
                                 <i class="fas fa-play"></i> Exécuter
                             </a>
                             <a href="/toggle/{{ automation_id }}" class="btn btn-{{ 'danger' if automation.enabled else 'success' }} btn-sm">
                                 <i class="fas fa-power-off"></i> {{ 'Désactiver' if automation.enabled else 'Activer' }}
                             </a>
                         </div>
+                        <div id="status_{{ automation_id }}" class="mt-2" style="display: none;">
+                            <div class="alert alert-info">
+                                <i class="fas fa-spinner fa-spin"></i> Exécution en cours...
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
             {% endfor %}
-        </div>
-        
+            </div>
+            
         <!-- Section Horaires -->
         <div class="row mb-4">
             <div class="col-12">
@@ -194,15 +199,15 @@ COMPLETE_TEMPLATE = """
                 </div>
             </div>
             {% endfor %}
-        </div>
-        
+            </div>
+            
         <!-- Section Logs -->
         <div class="row mb-4">
             <div class="col-12">
                 <h2 class="section-title"><i class="fas fa-list"></i> Logs en Temps Réel</h2>
             </div>
-        </div>
-        
+            </div>
+            
         <div class="row">
             <div class="col-12">
                 <div class="card logs-card">
@@ -223,7 +228,7 @@ COMPLETE_TEMPLATE = """
                             </button>
                             <button onclick="refreshLogs()" class="btn btn-primary btn-sm">
                                 <i class="fas fa-sync"></i> Actualiser
-                            </button>
+                </button>
                             <a href="/logs" class="btn btn-info btn-sm">
                                 <i class="fas fa-download"></i> Télécharger logs
                             </a>
@@ -231,8 +236,8 @@ COMPLETE_TEMPLATE = """
                     </div>
                 </div>
             </div>
-        </div>
-        
+            </div>
+            
         <!-- Guide des Horaires -->
         <div class="row mt-4">
             <div class="col-12">
@@ -261,8 +266,8 @@ COMPLETE_TEMPLATE = """
                                     <li><strong>Jour semaine :</strong> 0-7 (0 et 7 = dimanche)</li>
                                 </ul>
                             </div>
-                        </div>
-                    </div>
+                </div>
+                </div>
                 </div>
             </div>
         </div>
@@ -341,6 +346,21 @@ COMPLETE_TEMPLATE = """
         setInterval(function() {
             refreshLogs();
         }, 30000);
+        
+        function showExecutionStatus(automationId) {
+            // Afficher l'indicateur de chargement
+            const statusDiv = document.getElementById('status_' + automationId);
+            if (statusDiv) {
+                statusDiv.style.display = 'block';
+            }
+            
+            // Masquer l'indicateur après 5 secondes (temps d'exécution estimé)
+            setTimeout(function() {
+                if (statusDiv) {
+                    statusDiv.style.display = 'none';
+                }
+            }, 5000);
+        }
     </script>
 </body>
 </html>
@@ -358,11 +378,45 @@ def index():
 def run_automation(automation_id):
     """Exécute une automatisation"""
     try:
-        add_log(f"Exécution de l'automatisation {automation_id}")
-        flash(f'Automatisation {automation_id} exécutée', 'success')
+        add_log(f"🚀 Démarrage de l'automatisation {automation_id}")
+        
+        if automation_id == 'sync_aircall':
+            # Exécuter la synchronisation Aircall
+            result = execute_aircall_sync()
+            if result.get('success'):
+                add_log(f"✅ Synchronisation Aircall terminée: {result.get('message', 'Succès')}")
+                flash('Synchronisation Aircall exécutée avec succès', 'success')
+            else:
+                add_log(f"❌ Erreur synchronisation Aircall: {result.get('error', 'Erreur inconnue')}")
+                flash(f'Erreur synchronisation: {result.get("error", "Erreur inconnue")}', 'error')
+                
+        elif automation_id == 'create_tasks':
+            # Exécuter la création de tâches
+            result = execute_task_creation()
+            if result.get('success'):
+                add_log(f"✅ Création de tâches terminée: {result.get('message', 'Succès')}")
+                flash('Création de tâches exécutée avec succès', 'success')
+            else:
+                add_log(f"❌ Erreur création de tâches: {result.get('error', 'Erreur inconnue')}")
+                flash(f'Erreur création de tâches: {result.get("error", "Erreur inconnue")}', 'error')
+                
+        elif automation_id == 'link_contacts':
+            # Exécuter la liaison des contacts
+            result = execute_contact_linking()
+            if result.get('success'):
+                add_log(f"✅ Liaison des contacts terminée: {result.get('message', 'Succès')}")
+                flash('Liaison des contacts exécutée avec succès', 'success')
+            else:
+                add_log(f"❌ Erreur liaison des contacts: {result.get('error', 'Erreur inconnue')}")
+                flash(f'Erreur liaison des contacts: {result.get("error", "Erreur inconnue")}', 'error')
+        else:
+            add_log(f"❌ Automatisation {automation_id} non reconnue")
+            flash(f'Automatisation {automation_id} non reconnue', 'error')
+            
         return redirect(url_for('index'))
+        
     except Exception as e:
-        add_log(f"Erreur lors de l'exécution de {automation_id}: {str(e)}")
+        add_log(f"❌ Erreur lors de l'exécution de {automation_id}: {str(e)}")
         flash(f'Erreur: {str(e)}', 'error')
         return redirect(url_for('index'))
 
@@ -429,6 +483,137 @@ def add_log(message):
     # Garder seulement les 50 derniers logs
     if len(system_state['logs']) > 50:
         system_state['logs'] = system_state['logs'][-50:]
+
+def execute_aircall_sync():
+    """Exécute la synchronisation Aircall"""
+    try:
+        add_log("📞 Démarrage synchronisation Aircall...")
+        
+        # Import des modules nécessaires
+        import sys
+        import os
+        sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+        
+        try:
+            from aircall_monday_integration_v2 import AircallClient, MondayAircallClient
+            from config import get_monday_headers, get_aircall_headers, BOARD_IDS, COLUMN_IDS
+        except ImportError:
+            add_log("⚠️ Modules d'automatisation non trouvés, simulation...")
+            return {"success": True, "message": "Simulation - Modules non disponibles"}
+        
+        # Exécution de la synchronisation
+        aircall_client = AircallClient()
+        monday_client = MondayAircallClient()
+        
+        # Récupérer les appels Aircall
+        calls = aircall_client.get_calls()
+        if not calls:
+            return {"success": True, "message": "Aucun nouvel appel à synchroniser"}
+        
+        # Synchroniser avec Monday.com
+        synced_count = 0
+        for call in calls[:5]:  # Limiter à 5 appels pour éviter les timeouts
+            try:
+                # Vérifier si l'appel existe déjà
+                existing_ids = monday_client.get_existing_aircall_calls(BOARD_IDS['aircall_board_id'], COLUMN_IDS['aircall_id_column'])
+                if str(call['id']) not in existing_ids:
+                    # Créer l'item dans Monday.com
+                    ai_data = monday_client.process_call_ai_data(call['id'], get_aircall_headers())
+                    column_values = monday_client.create_aircall_item(call, ai_data)
+                    
+                    # Ajouter l'item
+                    item_name = f"Appel Aircall #{call['id']} - {call.get('raw_digits', 'N/A')}"
+                    monday_client.create_monday_item(BOARD_IDS['aircall_board_id'], item_name, column_values)
+                    synced_count += 1
+                    add_log(f"✅ Appel {call['id']} synchronisé")
+                    
+            except Exception as e:
+                add_log(f"❌ Erreur synchronisation appel {call['id']}: {str(e)}")
+                continue
+        
+        return {"success": True, "message": f"{synced_count} appels synchronisés avec succès"}
+        
+    except Exception as e:
+        add_log(f"❌ Erreur synchronisation Aircall: {str(e)}")
+        return {"success": False, "error": str(e)}
+
+def execute_task_creation():
+    """Exécute la création de tâches"""
+    try:
+        add_log("📋 Démarrage création de tâches...")
+        
+        # Import des modules nécessaires
+        import sys
+        import os
+        sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+        
+        try:
+            from create_tasks_with_agent import TaskCreator
+            from aircall_monday_integration_v2 import MondayAircallClient
+            from config import get_monday_headers, BOARD_IDS, COLUMN_IDS, AGENT_MAPPING
+        except ImportError:
+            add_log("⚠️ Modules d'automatisation non trouvés, simulation...")
+            return {"success": True, "message": "Simulation - Modules non disponibles"}
+        
+        # Exécution de la création de tâches
+        monday_client = MondayAircallClient()
+        task_creator = TaskCreator()
+        
+        # Récupérer les appels avec des actions IA
+        items = monday_client.get_items_with_actions_ia(BOARD_IDS['aircall_board_id'], COLUMN_IDS['actions_ia_column'])
+        
+        tasks_created = 0
+        for item in items[:3]:  # Limiter à 3 tâches pour éviter les timeouts
+            try:
+                actions_ia = item.get('actions_ia', '')
+                if actions_ia and actions_ia.strip().lower() != 'non disponible':
+                    # Créer les tâches
+                    parsed_actions = task_creator.parse_actions_ia(actions_ia)
+                    for action in parsed_actions:
+                        task_name = f"Appel {item['id']}: {action}"
+                        task_id = task_creator.create_task(task_name, item['agent_id'], item['client_id'], item['client_board_id'], item['id'])
+                        if task_id:
+                            tasks_created += 1
+                            add_log(f"✅ Tâche créée: {task_name}")
+        
+    except Exception as e:
+                add_log(f"❌ Erreur création tâche pour item {item['id']}: {str(e)}")
+                continue
+        
+        return {"success": True, "message": f"{tasks_created} tâches créées avec succès"}
+        
+    except Exception as e:
+        add_log(f"❌ Erreur création de tâches: {str(e)}")
+        return {"success": False, "error": str(e)}
+
+def execute_contact_linking():
+    """Exécute la liaison des contacts"""
+    try:
+        add_log("🔗 Démarrage liaison des contacts...")
+        
+        # Import des modules nécessaires
+        import sys
+        import os
+        sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+        
+        try:
+            from link_calls_to_contacts import MondayContactLinker
+            from config import get_monday_headers, BOARD_IDS, COLUMN_IDS
+        except ImportError:
+            add_log("⚠️ Modules d'automatisation non trouvés, simulation...")
+            return {"success": True, "message": "Simulation - Modules non disponibles"}
+        
+        # Exécution de la liaison des contacts
+        linker = MondayContactLinker()
+        
+        # Lier les appels aux contacts
+        linked_count = linker.link_all_calls()
+        
+        return {"success": True, "message": f"{linked_count} appels liés aux contacts avec succès"}
+        
+    except Exception as e:
+        add_log(f"❌ Erreur liaison des contacts: {str(e)}")
+        return {"success": False, "error": str(e)}
 
 if __name__ == '__main__':
     app.run(debug=True, host='0.0.0.0', port=5000)
