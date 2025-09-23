@@ -500,9 +500,13 @@ def execute_aircall_sync():
         board_ids = get_board_ids()
         column_ids = get_column_ids()
         
+        # Récupérer les configurations Aircall
+        aircall_api_id = os.getenv('AIRCALL_API_ID', 'cc1c0e0e08b34c3394245889a4377872')
+        aircall_api_token = os.getenv('AIRCALL_API_TOKEN', '3e5d6de7ef4d4bd1ebbca9c590e2e981')
+        
         # Exécution de la synchronisation
-        aircall_client = AircallClient()
-        monday_client = MondayAircallClient()
+        aircall_client = AircallClient(aircall_api_id, aircall_api_token)
+        monday_client = MondayAircallClient(board_ids['aircall_board_id'])
         
         # Récupérer les appels Aircall
         add_log("📞 Récupération des appels Aircall...")
@@ -556,7 +560,7 @@ def execute_task_creation():
         sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
         
         try:
-            from create_tasks_with_agent import TaskCreator
+            from create_tasks_with_agent import create_tasks_with_agent
             from aircall_monday_integration_v2 import MondayAircallClient
             from api.config_vercel import get_monday_headers, get_board_ids, get_column_ids, get_agent_mapping
         except ImportError as e:
@@ -569,42 +573,18 @@ def execute_task_creation():
         agent_mapping = get_agent_mapping()
         
         # Exécution de la création de tâches
-        monday_client = MondayAircallClient()
-        task_creator = TaskCreator()
+        monday_client = MondayAircallClient(board_ids['aircall_board_id'])
         
-        add_log("📋 Récupération des appels avec actions IA...")
-        # Récupérer les appels avec des actions IA
-        items = monday_client.get_items_with_actions_ia(board_ids['aircall_board_id'], column_ids['actions_ia_column'])
+        add_log("📋 Exécution de la création de tâches...")
         
-        if not items:
-            add_log("ℹ️ Aucun appel avec actions IA à traiter")
-            return {"success": True, "message": "Aucun appel avec actions IA à traiter"}
-        
-        add_log(f"📋 {len(items)} appels avec actions IA trouvés")
-        
-        tasks_created = 0
-        for item in items[:3]:  # Limiter à 3 tâches pour éviter les timeouts
-            try:
-                add_log(f"📋 Traitement de l'appel {item['id']}...")
-                actions_ia = item.get('actions_ia', '')
-                if actions_ia and actions_ia.strip().lower() != 'non disponible':
-                    # Créer les tâches
-                    parsed_actions = task_creator.parse_actions_ia(actions_ia)
-                    for action in parsed_actions:
-                        task_name = f"Appel {item['id']}: {action}"
-                        task_id = task_creator.create_task(task_name, item['agent_id'], item['client_id'], item['client_board_id'], item['id'])
-                        if task_id:
-                            tasks_created += 1
-                            add_log(f"✅ Tâche créée dans Monday.com: {task_name}")
-                else:
-                    add_log(f"ℹ️ Appel {item['id']}: Aucune action IA ou 'Non disponible'")
-                            
-            except Exception as e:
-                add_log(f"❌ Erreur création tâche pour item {item['id']}: {str(e)}")
-                continue
-        
-        add_log(f"✅ Création de tâches terminée: {tasks_created} tâches créées")
-        return {"success": True, "message": f"{tasks_created} tâches créées avec succès"}
+        # Exécuter la fonction de création de tâches
+        try:
+            result = create_tasks_with_agent()
+            add_log("✅ Création de tâches exécutée avec succès")
+            return {"success": True, "message": "Création de tâches exécutée avec succès"}
+        except Exception as e:
+            add_log(f"❌ Erreur lors de l'exécution de la création de tâches: {str(e)}")
+            return {"success": False, "error": str(e)}
         
     except Exception as e:
         add_log(f"❌ Erreur création de tâches: {str(e)}")
@@ -621,22 +601,22 @@ def execute_contact_linking():
         sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
         
         try:
-            from link_calls_to_contacts import MondayContactLinker
+            from link_calls_to_contacts import main as link_contacts_main
             from api.config_vercel import get_monday_headers, get_board_ids, get_column_ids
         except ImportError as e:
             add_log(f"⚠️ Modules d'automatisation non trouvés: {str(e)}")
             return {"success": False, "error": f"Modules manquants: {str(e)}"}
         
         # Exécution de la liaison des contacts
-        add_log("🔗 Initialisation du linker de contacts...")
-        linker = MondayContactLinker()
+        add_log("🔗 Exécution de la liaison des contacts...")
         
-        add_log("🔗 Récupération des appels à lier...")
-        # Lier les appels aux contacts
-        linked_count = linker.link_all_calls()
-        
-        add_log(f"✅ Liaison des contacts terminée: {linked_count} appels liés")
-        return {"success": True, "message": f"{linked_count} appels liés aux contacts avec succès"}
+        try:
+            result = link_contacts_main()
+            add_log("✅ Liaison des contacts exécutée avec succès")
+            return {"success": True, "message": "Liaison des contacts exécutée avec succès"}
+        except Exception as e:
+            add_log(f"❌ Erreur lors de l'exécution de la liaison des contacts: {str(e)}")
+            return {"success": False, "error": str(e)}
         
     except Exception as e:
         add_log(f"❌ Erreur liaison des contacts: {str(e)}")
