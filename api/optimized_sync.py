@@ -17,7 +17,7 @@ try:
     from config import get_monday_headers, get_aircall_headers
 except ImportError:
     # Utiliser la configuration Vercel
-    from config_vercel import get_monday_headers, get_aircall_headers
+    from api.config_vercel import get_monday_headers, get_aircall_headers
 
 import requests
 
