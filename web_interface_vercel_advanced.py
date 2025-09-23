@@ -527,7 +527,7 @@ def execute_aircall_sync():
                     monday_client.create_monday_item(BOARD_IDS['aircall_board_id'], item_name, column_values)
                     synced_count += 1
                     add_log(f"✅ Appel {call['id']} synchronisé dans Monday.com")
-        else:
+                else:
                     add_log(f"ℹ️ Appel {call['id']} déjà synchronisé")
                     
             except Exception as e:
@@ -589,8 +589,8 @@ def execute_task_creation():
                             add_log(f"✅ Tâche créée dans Monday.com: {task_name}")
                 else:
                     add_log(f"ℹ️ Appel {item['id']}: Aucune action IA ou 'Non disponible'")
-        
-    except Exception as e:
+                            
+            except Exception as e:
                 add_log(f"❌ Erreur création tâche pour item {item['id']}: {str(e)}")
                 continue
         
