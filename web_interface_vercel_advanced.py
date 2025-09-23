@@ -752,9 +752,110 @@ def schedule():
 @app.route('/monitoring')
 def monitoring():
     """Page de monitoring des automatisations"""
-    return render_template_string(MONITORING_TEMPLATE, 
-                                system_state=system_state,
-                                automations_config=automations_config)
+    # Version simplifiée et fonctionnelle
+    html = """
+    <!DOCTYPE html>
+    <html lang="fr">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Monitoring - Taskimmo</title>
+        <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+        <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    </head>
+    <body>
+        <nav class="navbar navbar-expand-lg navbar-dark bg-success">
+        <div class="container">
+                <a class="navbar-brand" href="/">
+                    <i class="fas fa-chart-line"></i> Taskimmo - Monitoring
+                </a>
+                <div class="navbar-nav ms-auto">
+                    <a class="nav-link" href="/">Dashboard</a>
+                    <a class="nav-link active" href="/monitoring">Monitoring</a>
+                    <a class="nav-link" href="/schedule">Horaires</a>
+                </div>
+            </div>
+        </nav>
+
+        <div class="container mt-4">
+            <h1 class="mb-4">
+                <i class="fas fa-chart-line"></i> Monitoring des Automatisations
+            </h1>
+            
+            <div class="row">
+    """
+    
+    # Ajouter les cartes d'automatisation
+    for automation_id, automation in automations_config.items():
+        status_class = "success" if automation['enabled'] else "danger"
+        status_text = "Actif" if automation['enabled'] else "Inactif"
+        
+        html += f"""
+                <div class="col-md-6 mb-4">
+                    <div class="card">
+                        <div class="card-header">
+                            <h5><i class="{automation['icon']}"></i> {automation['name']}</h5>
+                </div>
+                        <div class="card-body">
+                            <p><strong>Statut:</strong> <span class="badge bg-{status_class}">{status_text}</span></p>
+                            <p><strong>Description:</strong> {automation['description']}</p>
+                            <p><strong>Fréquence:</strong> {automation.get('cadence', 'Non définie')}</p>
+                            <div class="btn-group w-100">
+                                <a href="/run/{automation_id}" class="btn btn-warning btn-sm">
+                                    <i class="fas fa-play"></i> Exécuter
+                                </a>
+                                <a href="/toggle/{automation_id}" class="btn btn-{status_class} btn-sm">
+                                    <i class="fas fa-power-off"></i> {'Désactiver' if automation['enabled'] else 'Activer'}
+                                </a>
+            </div>
+                </div>
+            </div>
+        </div>
+        """
+    
+    html += """
+            </div>
+            
+            <div class="row mt-4">
+                <div class="col-12">
+                    <div class="card">
+                        <div class="card-header">
+                            <h5><i class="fas fa-list"></i> Logs Récents</h5>
+            </div>
+                        <div class="card-body">
+                            <div class="logs-container" style="max-height: 300px; overflow-y: auto; background: #f8f9fa; padding: 15px; border-radius: 5px;">
+    """
+    
+    # Ajouter les logs récents
+    for log in system_state['logs'][-10:]:
+        html += f"""
+                                <div class="mb-2">
+                                    <small class="text-muted">{log}</small>
+            </div>
+        """
+            
+    html += """
+                </div>
+                            <div class="mt-3">
+                                <a href="/clear_logs" class="btn btn-warning btn-sm">
+                                    <i class="fas fa-trash"></i> Effacer les logs
+                                </a>
+                                <a href="/logs" class="btn btn-info btn-sm">
+                                    <i class="fas fa-download"></i> Télécharger logs
+                                </a>
+                </div>
+                </div>
+            </div>
+        </div>
+            </div>
+        </div>
+        
+        <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    </body>
+    </html>
+    """
+    
+    return html
 
 # API endpoints
 # Routes pour les actions
@@ -800,7 +901,7 @@ def clear_logs():
     """Efface les logs"""
     system_state['logs'] = [f"{datetime.now().strftime('%H:%M:%S')} - INFO - Logs effacés"]
     flash('Logs effacés', 'info')
-    return redirect(url_for('index'))
+        return redirect(url_for('index'))
         
 @app.route('/logs')
 def get_logs():
